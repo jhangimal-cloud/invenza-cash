@@ -22,6 +22,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/receivables/import', [ReceivableImportController::class, 'store'])->name('receivables.import.store');
 
     Route::get('/gestion-cobros', [CollectionTrackingController::class, 'index'])->name('collections.index');
+    Route::get('/gestion-cobros/proyeccion', [CollectionTrackingController::class, 'forecast'])->name('collections.forecast');
     Route::get('/gestion-cobros/{collectionTracking}', [CollectionTrackingController::class, 'show'])->name('collections.show');
     Route::post('/gestion-cobros/{collectionTracking}/actividades', [CollectionTrackingController::class, 'addActivity'])->name('collections.activities.store');
     Route::post('/cuentas-por-cobrar/{receivable}/gestionar', [CollectionTrackingController::class, 'createFromReceivable'])->name('collections.from-receivable');

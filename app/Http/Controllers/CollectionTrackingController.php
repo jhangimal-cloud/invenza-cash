@@ -76,6 +76,105 @@ class CollectionTrackingController extends Controller
         return view('collections.index', compact('receivables', 'statuses', 'users', 'summary'));
     }
 
+    /**
+     * Proyeccion de ingresos por mes (clon de la Fase 2 de Invenza, adaptado
+     * a una sola fuente). El mes de cada cuenta se asigna: 1) la promesa de
+     * pago mas reciente de su gestion si tiene fecha futura o del mes
+     * actual, 2) si no hay promesa, el mes de vencimiento SOLO si es
+     * futuro, 3) si no hay promesa y ya esta vencida, bucket separado
+     * "vencido sin gestion" (no se mezcla con los meses).
+     */
+    public function forecast(Request $request)
+    {
+        $companyId = $request->user()->company_id;
+
+        $receivables = Receivable::with('tracking')
+            ->where('company_id', $companyId)
+            ->where('balance', '>', 0)
+            ->where('status', '!=', 'PAGADO')
+            ->get();
+
+        $trackingIds = $receivables->pluck('tracking.id')->filter()->values();
+
+        $latestPromises = CollectionTrackingActivity::where('company_id', $companyId)
+            ->where('activity_type', 'promise_payment')
+            ->whereIn('tracking_id', $trackingIds)
+            ->whereNotNull('promised_payment_date')
+            ->orderByDesc('activity_at')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('tracking_id')
+            ->map(fn ($group) => $group->first());
+
+        $spanishMonths = [
+            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
+        ];
+
+        $monthKeys = [];
+        $monthLabels = [];
+        $cursor = now()->startOfMonth();
+
+        for ($i = 0; $i < 4; $i++) {
+            $key = $cursor->format('Y-m');
+            $monthKeys[] = $key;
+            $monthLabels[$key] = $spanishMonths[(int) $cursor->format('n')] . ' ' . $cursor->format('Y');
+            $cursor = $cursor->copy()->addMonthNoOverflow();
+        }
+
+        $laterThreshold = $cursor;
+        $currentMonthStart = now()->startOfMonth();
+
+        $rows = $receivables->map(function (Receivable $receivable) use ($latestPromises, $laterThreshold, $currentMonthStart) {
+            $trackingId = $receivable->tracking?->id;
+            $promise = $trackingId ? $latestPromises->get($trackingId) : null;
+
+            $bucketDate = null;
+
+            if ($promise && $promise->promised_payment_date) {
+                $promiseMonth = $promise->promised_payment_date->copy()->startOfMonth();
+
+                if ($promiseMonth->greaterThanOrEqualTo($currentMonthStart)) {
+                    $bucketDate = $promiseMonth;
+                }
+            }
+
+            if ($bucketDate === null && $receivable->due_date && $receivable->due_date->isFuture()) {
+                $bucketDate = $receivable->due_date->copy()->startOfMonth();
+            }
+
+            $bucket = 'overdue_no_promise';
+
+            if ($bucketDate !== null) {
+                $bucket = $bucketDate->greaterThanOrEqualTo($laterThreshold) ? 'later' : $bucketDate->format('Y-m');
+            }
+
+            return [
+                'receivable' => $receivable,
+                'tracking' => $receivable->tracking,
+                'promised_payment_date' => $promise?->promised_payment_date,
+                'bucket' => $bucket,
+            ];
+        });
+
+        $bucketOrder = array_merge(['overdue_no_promise'], $monthKeys, ['later']);
+
+        $buckets = collect($bucketOrder)->mapWithKeys(function ($key) use ($rows) {
+            $bucketRows = $rows->where('bucket', $key)->values();
+
+            return [$key => [
+                'total' => $bucketRows->sum(fn ($row) => (float) $row['receivable']->balance),
+                'count' => $bucketRows->count(),
+            ]];
+        });
+
+        $bucketPositions = array_flip($bucketOrder);
+        $rows = $rows->sortBy(fn ($row) => $bucketPositions[$row['bucket']] ?? 999)->values();
+
+        return view('collections.forecast', compact('rows', 'buckets', 'monthKeys', 'monthLabels'));
+    }
+
     public function createFromReceivable(Request $request, Receivable $receivable)
     {
         $companyId = $request->user()->company_id;

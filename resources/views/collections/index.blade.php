@@ -7,14 +7,23 @@
             <p class="text-sm text-slate-500 mt-0.5">Cuentas por cobrar importadas con saldo pendiente, con su bitácora de gestión.</p>
         </div>
 
-        <a href="{{ route('receivables.import') }}"
-           class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 text-white font-semibold text-sm hover:bg-brand-700 shadow-sm shadow-brand-900/10 transition">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4" />
-                <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2.5A1.5 1.5 0 005.5 20h13a1.5 1.5 0 001.5-1.5V16" />
-            </svg>
-            Importar cartera
-        </a>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('collections.forecast') }}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 19V9m5 10V5m5 14v-7m5 7V11" />
+                </svg>
+                Proyección mensual
+            </a>
+            <a href="{{ route('receivables.import') }}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 text-white font-semibold text-sm hover:bg-brand-700 shadow-sm shadow-brand-900/10 transition">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v12m0 0l-4-4m4 4l4-4" />
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2.5A1.5 1.5 0 005.5 20h13a1.5 1.5 0 001.5-1.5V16" />
+                </svg>
+                Importar cartera
+            </a>
+        </div>
     </div>
 
     @if(session('success'))
