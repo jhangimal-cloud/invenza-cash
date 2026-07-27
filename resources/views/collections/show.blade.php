@@ -15,6 +15,10 @@
         <div class="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 text-sm">{{ session('success') }}</div>
     @endif
 
+    @if(session('error'))
+        <div class="rounded-xl bg-red-50 border border-red-200 text-red-800 px-4 py-3 text-sm">{{ session('error') }}</div>
+    @endif
+
     @if($errors->any())
         <div class="rounded-xl bg-red-50 border border-red-200 text-red-800 px-4 py-3 text-sm">
             <ul class="list-disc ml-5">
@@ -76,6 +80,30 @@
                         {{ $collectionTracking->original_due_date ? $collectionTracking->original_due_date->format('d/m/Y') : 'Sin fecha' }}
                     </div>
                 </div>
+
+                @if($collectionTracking->receivable->customer_email)
+                    <div class="pt-3 border-t border-slate-100">
+                        <button type="button"
+                                onclick="document.getElementById('reminderForm').classList.toggle('hidden')"
+                                class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 text-white px-4 py-2.5 text-sm font-semibold hover:bg-amber-600">
+                            ✉ Enviar recordatorio por correo
+                        </button>
+
+                        <form id="reminderForm" method="POST" action="{{ route('collections.remind', $collectionTracking) }}" class="hidden mt-3 space-y-2">
+                            @csrf
+                            <label class="block text-xs font-semibold text-slate-600">Mensaje (opcional)</label>
+                            <textarea name="message" rows="3" class="w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500"
+                                      placeholder="Ej: Le recordamos amablemente que su pago está pendiente..."></textarea>
+                            <button type="submit" class="w-full rounded-lg bg-amber-600 text-white px-4 py-2 text-sm font-semibold hover:bg-amber-700">
+                                Enviar a {{ $collectionTracking->receivable->customer_email }}
+                            </button>
+                        </form>
+                    </div>
+                @else
+                    <div class="pt-3 border-t border-slate-100 text-xs text-slate-400 text-center">
+                        Este cliente no tiene correo registrado.
+                    </div>
+                @endif
             </div>
 
             <form method="POST" action="{{ route('collections.activities.store', $collectionTracking) }}" class="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">

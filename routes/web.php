@@ -30,6 +30,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/gestion-cobros/flujo-de-caja', [CollectionTrackingController::class, 'cashFlow'])->name('collections.cashflow');
     Route::get('/gestion-cobros/{collectionTracking}', [CollectionTrackingController::class, 'show'])->name('collections.show');
     Route::post('/gestion-cobros/{collectionTracking}/actividades', [CollectionTrackingController::class, 'addActivity'])->name('collections.activities.store');
+    Route::post('/gestion-cobros/{collectionTracking}/recordatorio', [CollectionTrackingController::class, 'sendReminder'])->name('collections.remind');
     Route::post('/cuentas-por-cobrar/{receivable}/gestionar', [CollectionTrackingController::class, 'createFromReceivable'])->name('collections.from-receivable');
 });
 

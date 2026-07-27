@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\CollectionReminderMail;
 use App\Models\CollectionTracking;
 use App\Models\CollectionTrackingActivity;
 use App\Models\CollectionTrackingStatus;
@@ -10,6 +11,8 @@ use App\Models\Receivable;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\Rule;
 
 class CollectionTrackingController extends Controller
@@ -397,5 +400,54 @@ class CollectionTrackingController extends Controller
 
         return redirect()->route('collections.show', $collectionTracking)
             ->with('success', 'Actividad registrada correctamente.');
+    }
+
+    public function sendReminder(Request $request, CollectionTracking $collectionTracking)
+    {
+        $companyId = $request->user()->company_id;
+
+        abort_if((int) $collectionTracking->company_id !== (int) $companyId, 403);
+
+        $validated = $request->validate([
+            'message' => ['nullable', 'string', 'max:2000'],
+        ]);
+
+        $collectionTracking->loadMissing('receivable');
+        $email = trim((string) $collectionTracking->receivable->customer_email);
+
+        if ($email === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return back()->with('error', 'Este cliente no tiene un correo electrónico válido registrado.');
+        }
+
+        $company = $request->user()->company;
+        $customMessage = $validated['message'] ?? null;
+
+        try {
+            Mail::to($email)->send(new CollectionReminderMail($collectionTracking, $company, $customMessage));
+        } catch (\Throwable $e) {
+            Log::error('[COLLECTION REMINDER MAIL] Error enviando recordatorio de cobro', [
+                'collection_tracking_id' => $collectionTracking->id,
+                'email' => $email,
+                'error' => $e->getMessage(),
+            ]);
+
+            return back()->with('error', 'No se pudo enviar el recordatorio. Revise la configuración de correo o intente nuevamente.');
+        }
+
+        CollectionTrackingActivity::create([
+            'company_id' => $companyId,
+            'tracking_id' => $collectionTracking->id,
+            'user_id' => $request->user()->id,
+            'activity_type' => 'reminder',
+            'direction' => 'outbound',
+            'subject' => 'Recordatorio enviado por correo',
+            'body' => $customMessage,
+            'activity_at' => now(),
+        ]);
+
+        $collectionTracking->update(['last_activity_at' => now()]);
+
+        return redirect()->route('collections.show', $collectionTracking)
+            ->with('success', 'Recordatorio enviado correctamente a ' . $email . '.');
     }
 }

@@ -50,6 +50,11 @@ class CollectionTracking extends Model
         return $this->belongsTo(Receivable::class);
     }
 
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
     public function status()
     {
         return $this->belongsTo(CollectionTrackingStatus::class, 'status_id');
