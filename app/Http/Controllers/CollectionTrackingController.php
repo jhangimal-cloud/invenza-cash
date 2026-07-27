@@ -1,0 +1,224 @@
+<?php
+
+namespace App\Http\Controllers;
+
+use App\Models\CollectionTracking;
+use App\Models\CollectionTrackingActivity;
+use App\Models\CollectionTrackingStatus;
+use App\Models\Receivable;
+use App\Models\User;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\Rule;
+
+class CollectionTrackingController extends Controller
+{
+    /**
+     * Bandeja: todas las cuentas por cobrar importadas con saldo pendiente,
+     * cada una con su gestion (si ya se creo). A diferencia de Invenza (que
+     * unifica dos fuentes), aca `receivables` ya es la unica fuente.
+     */
+    public function index(Request $request)
+    {
+        $companyId = $request->user()->company_id;
+
+        $statuses = CollectionTrackingStatus::where('company_id', $companyId)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        $users = User::where('company_id', $companyId)->orderBy('name')->get(['id', 'name']);
+
+        $query = Receivable::with(['tracking.status', 'tracking.responsible'])
+            ->where('company_id', $companyId)
+            ->where('balance', '>', 0)
+            ->where('status', '!=', 'PAGADO');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('customer_name', 'like', "%{$search}%")
+                    ->orWhere('document_number', 'like', "%{$search}%");
+            });
+        }
+
+        if ($request->filled('status_id')) {
+            $statusId = (int) $request->status_id;
+            $query->whereHas('tracking', fn ($q) => $q->where('status_id', $statusId));
+        }
+
+        $receivables = $query->get()->map(function (Receivable $receivable) {
+            $dueDate = $receivable->due_date;
+            $daysOverdue = 0;
+
+            if ($dueDate && $dueDate->isPast()) {
+                $daysOverdue = now()->startOfDay()->diffInDays($dueDate->copy()->startOfDay());
+            }
+
+            return [
+                'receivable' => $receivable,
+                'tracking' => $receivable->tracking,
+                'days_overdue' => $daysOverdue,
+            ];
+        })->sortByDesc('days_overdue')->values();
+
+        $summary = [
+            'total_open' => $receivables->count(),
+            'total_balance' => $receivables->sum(fn ($row) => (float) $row['receivable']->balance),
+            'due_today' => $receivables->filter(function ($row) {
+                $next = $row['tracking']?->next_follow_up_at;
+
+                return $next && $next->toDateString() <= now()->toDateString();
+            })->count(),
+        ];
+
+        return view('collections.index', compact('receivables', 'statuses', 'users', 'summary'));
+    }
+
+    public function createFromReceivable(Request $request, Receivable $receivable)
+    {
+        $companyId = $request->user()->company_id;
+
+        abort_if((int) $receivable->company_id !== (int) $companyId, 403);
+
+        $existing = CollectionTracking::where('receivable_id', $receivable->id)->first();
+
+        if ($existing) {
+            return redirect()->route('collections.show', $existing)
+                ->with('success', 'Esta cuenta ya tenía una gestión. Se abrió la existente.');
+        }
+
+        $initialStatusId = CollectionTrackingStatus::where('company_id', $companyId)
+            ->where('is_active', true)
+            ->where('is_initial', true)
+            ->value('id');
+
+        $tracking = null;
+
+        DB::transaction(function () use (&$tracking, $companyId, $receivable, $initialStatusId, $request) {
+            $tracking = CollectionTracking::create([
+                'company_id' => $companyId,
+                'receivable_id' => $receivable->id,
+                'responsible_user_id' => $request->user()->id,
+                'status_id' => $initialStatusId,
+                'title' => 'CxC ' . ($receivable->document_number ?: ('#' . $receivable->id)),
+                'balance_amount' => $receivable->balance,
+                'priority' => 'normal',
+                'original_due_date' => $receivable->due_date,
+                'next_follow_up_at' => now()->addDay(),
+                'last_activity_at' => now(),
+                'is_active' => true,
+            ]);
+
+            CollectionTrackingActivity::create([
+                'company_id' => $companyId,
+                'tracking_id' => $tracking->id,
+                'user_id' => $request->user()->id,
+                'activity_type' => 'system',
+                'direction' => 'internal',
+                'subject' => 'Gestión de cobro creada',
+                'body' => 'Se creó la gestión de cobro para ' . $receivable->customer_name . '.',
+                'activity_at' => now(),
+                'next_follow_up_at' => $tracking->next_follow_up_at,
+            ]);
+        });
+
+        return redirect()->route('collections.show', $tracking)
+            ->with('success', 'Gestión de cobro creada correctamente.');
+    }
+
+    public function show(Request $request, CollectionTracking $collectionTracking)
+    {
+        $companyId = $request->user()->company_id;
+
+        abort_if((int) $collectionTracking->company_id !== (int) $companyId, 403);
+
+        $collectionTracking->load(['status', 'responsible', 'receivable']);
+
+        $statuses = CollectionTrackingStatus::where('company_id', $companyId)
+            ->where('is_active', true)
+            ->orderBy('sort_order')
+            ->orderBy('name')
+            ->get();
+
+        $activities = CollectionTrackingActivity::with(['user', 'oldStatus', 'newStatus'])
+            ->where('tracking_id', $collectionTracking->id)
+            ->orderByDesc('activity_at')
+            ->orderByDesc('id')
+            ->get();
+
+        return view('collections.show', compact('collectionTracking', 'statuses', 'activities'));
+    }
+
+    public function addActivity(Request $request, CollectionTracking $collectionTracking)
+    {
+        $companyId = $request->user()->company_id;
+
+        abort_if((int) $collectionTracking->company_id !== (int) $companyId, 403);
+
+        $validated = $request->validate([
+            'activity_type' => [
+                'required',
+                Rule::in(['note', 'call', 'whatsapp', 'email_sent', 'email_received', 'meeting', 'status_change', 'reminder', 'promise_payment', 'system']),
+            ],
+            'subject' => ['nullable', 'string', 'max:220'],
+            'body' => ['nullable', 'string'],
+            'promised_amount' => ['nullable', 'numeric', 'min:0'],
+            'promised_payment_date' => ['nullable', 'date'],
+            'new_status_id' => [
+                'nullable',
+                Rule::exists('collection_tracking_statuses', 'id')->where(fn ($q) => $q->where('company_id', $companyId)->whereNull('deleted_at')),
+            ],
+            'next_follow_up_at' => ['nullable', 'date'],
+        ]);
+
+        DB::transaction(function () use ($validated, $collectionTracking, $companyId, $request) {
+            $oldStatusId = $collectionTracking->status_id;
+            $newStatusId = $validated['new_status_id'] ?? null;
+
+            $direction = match ($validated['activity_type']) {
+                'email_sent' => 'outbound',
+                'email_received' => 'inbound',
+                default => 'internal',
+            };
+
+            CollectionTrackingActivity::create([
+                'company_id' => $companyId,
+                'tracking_id' => $collectionTracking->id,
+                'user_id' => $request->user()->id,
+                'activity_type' => $validated['activity_type'],
+                'direction' => $direction,
+                'old_status_id' => $newStatusId ? $oldStatusId : null,
+                'new_status_id' => $newStatusId,
+                'subject' => $validated['subject'] ?? null,
+                'body' => $validated['body'] ?? null,
+                'promised_amount' => $validated['promised_amount'] ?? null,
+                'promised_payment_date' => $validated['promised_payment_date'] ?? null,
+                'activity_at' => now(),
+                'next_follow_up_at' => $validated['next_follow_up_at'] ?? null,
+            ]);
+
+            $updates = ['last_activity_at' => now()];
+
+            if (array_key_exists('next_follow_up_at', $validated)) {
+                $updates['next_follow_up_at'] = $validated['next_follow_up_at'];
+            }
+
+            if ($newStatusId) {
+                $updates['status_id'] = $newStatusId;
+                $newStatus = CollectionTrackingStatus::find($newStatusId);
+                $updates['closed_at'] = $newStatus?->is_final ? now() : null;
+
+                if ($newStatus?->is_final && $newStatus->name === 'Pagado') {
+                    $collectionTracking->receivable()->update(['status' => 'PAGADO', 'balance' => 0]);
+                }
+            }
+
+            $collectionTracking->update($updates);
+        });
+
+        return redirect()->route('collections.show', $collectionTracking)
+            ->with('success', 'Actividad registrada correctamente.');
+    }
+}
