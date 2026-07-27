@@ -8,6 +8,13 @@
         </div>
 
         <div class="flex flex-wrap gap-2">
+            <a href="{{ route('collections.cashflow') }}"
+               class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l5-5 4 4 8-8M20 8v5h-5" />
+                </svg>
+                Cash Flow
+            </a>
             <a href="{{ route('collections.forecast') }}"
                class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white border border-slate-300 text-slate-700 font-semibold text-sm hover:bg-slate-50 transition">
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">

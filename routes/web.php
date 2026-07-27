@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\CollectionTrackingController;
+use App\Http\Controllers\PayableImportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReceivableImportController;
 use Illuminate\Support\Facades\Route;
@@ -21,8 +22,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/receivables/import', [ReceivableImportController::class, 'create'])->name('receivables.import');
     Route::post('/receivables/import', [ReceivableImportController::class, 'store'])->name('receivables.import.store');
 
+    Route::get('/payables/import', [PayableImportController::class, 'create'])->name('payables.import');
+    Route::post('/payables/import', [PayableImportController::class, 'store'])->name('payables.import.store');
+
     Route::get('/gestion-cobros', [CollectionTrackingController::class, 'index'])->name('collections.index');
     Route::get('/gestion-cobros/proyeccion', [CollectionTrackingController::class, 'forecast'])->name('collections.forecast');
+    Route::get('/gestion-cobros/flujo-de-caja', [CollectionTrackingController::class, 'cashFlow'])->name('collections.cashflow');
     Route::get('/gestion-cobros/{collectionTracking}', [CollectionTrackingController::class, 'show'])->name('collections.show');
     Route::post('/gestion-cobros/{collectionTracking}/actividades', [CollectionTrackingController::class, 'addActivity'])->name('collections.activities.store');
     Route::post('/cuentas-por-cobrar/{receivable}/gestionar', [CollectionTrackingController::class, 'createFromReceivable'])->name('collections.from-receivable');

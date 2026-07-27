@@ -1,7 +1,8 @@
 @php
     $navItems = [
-        ['route' => 'collections.index', 'label' => 'Gestión de cobros', 'pattern' => 'collections.*', 'icon' => 'inbox'],
-        ['route' => 'receivables.import', 'label' => 'Importar cartera', 'pattern' => 'receivables.*', 'icon' => 'upload'],
+        ['route' => 'collections.index', 'label' => 'Gestión de cobros', 'pattern' => ['collections.index', 'collections.show', 'collections.forecast', 'collections.from-receivable'], 'icon' => 'inbox'],
+        ['route' => 'collections.cashflow', 'label' => 'Cash Flow', 'pattern' => ['collections.cashflow'], 'icon' => 'chart'],
+        ['route' => 'receivables.import', 'label' => 'Importar cartera', 'pattern' => ['receivables.*', 'payables.*'], 'icon' => 'upload'],
     ];
 @endphp
 
@@ -18,7 +19,7 @@
 
     <nav class="flex-1 px-3 py-6 space-y-1">
         @foreach($navItems as $item)
-            @php($isActive = request()->routeIs($item['pattern']))
+            @php($isActive = request()->routeIs(...$item['pattern']))
             <a href="{{ route($item['route']) }}"
                class="group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition
                       {{ $isActive ? 'bg-brand-600 text-white shadow-lg shadow-brand-900/30' : 'text-slate-400 hover:bg-white/5 hover:text-white' }}">
@@ -27,6 +28,10 @@
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 12h4.5l1.5 3h6l1.5-3H21" />
                             <path stroke-linecap="round" stroke-linejoin="round" d="M5.5 6h13l2 6.5V18a1.5 1.5 0 01-1.5 1.5h-14A1.5 1.5 0 013.5 18v-5.5L5.5 6z" />
+                        </svg>
+                    @elseif($item['icon'] === 'chart')
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l5-5 4 4 8-8M20 8v5h-5" />
                         </svg>
                     @else
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">

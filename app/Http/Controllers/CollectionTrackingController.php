@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\CollectionTracking;
 use App\Models\CollectionTrackingActivity;
 use App\Models\CollectionTrackingStatus;
+use App\Models\Payable;
 use App\Models\Receivable;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -88,6 +89,13 @@ class CollectionTrackingController extends Controller
     {
         $companyId = $request->user()->company_id;
 
+        $data = $this->incomeForecastData($companyId);
+
+        return view('collections.forecast', $data);
+    }
+
+    private function incomeForecastData(int $companyId): array
+    {
         $receivables = Receivable::with('tracking')
             ->where('company_id', $companyId)
             ->where('balance', '>', 0)
@@ -106,24 +114,8 @@ class CollectionTrackingController extends Controller
             ->groupBy('tracking_id')
             ->map(fn ($group) => $group->first());
 
-        $spanishMonths = [
-            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
-            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
-            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
-        ];
+        [$monthKeys, $monthLabels, $laterThreshold] = $this->monthWindow();
 
-        $monthKeys = [];
-        $monthLabels = [];
-        $cursor = now()->startOfMonth();
-
-        for ($i = 0; $i < 4; $i++) {
-            $key = $cursor->format('Y-m');
-            $monthKeys[] = $key;
-            $monthLabels[$key] = $spanishMonths[(int) $cursor->format('n')] . ' ' . $cursor->format('Y');
-            $cursor = $cursor->copy()->addMonthNoOverflow();
-        }
-
-        $laterThreshold = $cursor;
         $currentMonthStart = now()->startOfMonth();
 
         $rows = $receivables->map(function (Receivable $receivable) use ($latestPromises, $laterThreshold, $currentMonthStart) {
@@ -172,7 +164,93 @@ class CollectionTrackingController extends Controller
         $bucketPositions = array_flip($bucketOrder);
         $rows = $rows->sortBy(fn ($row) => $bucketPositions[$row['bucket']] ?? 999)->values();
 
-        return view('collections.forecast', compact('rows', 'buckets', 'monthKeys', 'monthLabels'));
+        return compact('rows', 'buckets', 'monthKeys', 'monthLabels');
+    }
+
+    /**
+     * Ventana de 4 meses (mes actual + 3 siguientes) con etiquetas en
+     * espanol. Compartida por incomeForecastData() y cashFlow() para que
+     * ingresos y egresos usen exactamente los mismos meses.
+     */
+    private function monthWindow(): array
+    {
+        $spanishMonths = [
+            1 => 'Enero', 2 => 'Febrero', 3 => 'Marzo', 4 => 'Abril',
+            5 => 'Mayo', 6 => 'Junio', 7 => 'Julio', 8 => 'Agosto',
+            9 => 'Septiembre', 10 => 'Octubre', 11 => 'Noviembre', 12 => 'Diciembre',
+        ];
+
+        $monthKeys = [];
+        $monthLabels = [];
+        $cursor = now()->startOfMonth();
+
+        for ($i = 0; $i < 4; $i++) {
+            $key = $cursor->format('Y-m');
+            $monthKeys[] = $key;
+            $monthLabels[$key] = $spanishMonths[(int) $cursor->format('n')] . ' ' . $cursor->format('Y');
+            $cursor = $cursor->copy()->addMonthNoOverflow();
+        }
+
+        return [$monthKeys, $monthLabels, $cursor];
+    }
+
+    /**
+     * Cash Flow (egresos = Payable, solo por vencimiento, sin concepto de
+     * promesa de pago del lado de egresos).
+     */
+    public function cashFlow(Request $request)
+    {
+        $companyId = $request->user()->company_id;
+
+        $income = $this->incomeForecastData($companyId);
+        [$monthKeys, $monthLabels, $laterThreshold] = $this->monthWindow();
+
+        $expenseRows = Payable::where('company_id', $companyId)
+            ->where('balance', '>', 0)
+            ->where('status', '!=', 'PAGADO')
+            ->get()
+            ->map(function (Payable $payable) use ($laterThreshold) {
+                $dueDate = $payable->due_date;
+                $bucket = 'overdue';
+
+                if ($dueDate && $dueDate->isFuture()) {
+                    $bucketDate = $dueDate->copy()->startOfMonth();
+                    $bucket = $bucketDate->greaterThanOrEqualTo($laterThreshold) ? 'later' : $bucketDate->format('Y-m');
+                }
+
+                return [
+                    'payable' => $payable,
+                    'bucket' => $bucket,
+                ];
+            });
+
+        $expenseBucketOrder = array_merge(['overdue'], $monthKeys, ['later']);
+
+        $expenseBuckets = collect($expenseBucketOrder)->mapWithKeys(function ($key) use ($expenseRows) {
+            $bucketRows = $expenseRows->where('bucket', $key)->values();
+
+            return [$key => [
+                'total' => $bucketRows->sum(fn ($row) => (float) $row['payable']->balance),
+                'count' => $bucketRows->count(),
+            ]];
+        });
+
+        $expenseBucketPositions = array_flip($expenseBucketOrder);
+        $expenseRows = $expenseRows->sortBy(fn ($row) => $expenseBucketPositions[$row['bucket']] ?? 999)->values();
+
+        $netByMonth = collect($monthKeys)->mapWithKeys(fn ($key) => [
+            $key => $income['buckets'][$key]['total'] - $expenseBuckets[$key]['total'],
+        ]);
+        $netByMonth['later'] = $income['buckets']['later']['total'] - $expenseBuckets['later']['total'];
+
+        return view('collections.cashflow', [
+            'monthKeys' => $monthKeys,
+            'monthLabels' => $monthLabels,
+            'incomeBuckets' => $income['buckets'],
+            'expenseBuckets' => $expenseBuckets,
+            'netByMonth' => $netByMonth,
+            'expenseRows' => $expenseRows,
+        ]);
     }
 
     public function createFromReceivable(Request $request, Receivable $receivable)

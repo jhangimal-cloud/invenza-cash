@@ -6,9 +6,14 @@
             <h1 class="text-2xl font-extrabold text-slate-900">Proyección mensual de cobros</h1>
             <p class="text-sm text-slate-500 mt-0.5">Cuánto esperas cobrar por mes, según promesas de pago registradas y vencimientos.</p>
         </div>
-        <a href="{{ route('collections.index') }}" class="rounded-xl bg-white border border-slate-300 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-medium">
-            ← Volver a la bandeja
-        </a>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('collections.cashflow') }}" class="rounded-xl bg-slate-900 text-white px-4 py-2.5 text-sm font-semibold hover:bg-slate-800">
+                Ver Cash Flow
+            </a>
+            <a href="{{ route('collections.index') }}" class="rounded-xl bg-white border border-slate-300 px-4 py-2.5 text-sm text-slate-700 hover:bg-slate-50 font-medium">
+                ← Volver a la bandeja
+            </a>
+        </div>
     </div>
 
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
