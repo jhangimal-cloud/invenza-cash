@@ -1,4 +1,7 @@
 <x-guest-layout>
+    <h2 class="text-xl font-bold text-slate-800 mb-1">Crea tu cuenta</h2>
+    <p class="text-sm text-slate-500 mb-6">Empieza a gestionar tus cobros en minutos.</p>
+
     <form method="POST" action="{{ route('register') }}">
         @csrf
 
@@ -46,14 +49,15 @@
             <x-input-error :messages="$errors->get('password_confirmation')" class="mt-2" />
         </div>
 
-        <div class="flex items-center justify-end mt-4">
-            <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500" href="{{ route('login') }}">
-                ¿Ya tienes cuenta?
-            </a>
-
-            <x-primary-button class="ms-4">
+        <div class="mt-6">
+            <x-primary-button class="w-full justify-center">
                 Registrarme
             </x-primary-button>
         </div>
     </form>
+
+    <p class="text-sm text-slate-500 mt-6 text-center">
+        ¿Ya tienes cuenta?
+        <a href="{{ route('login') }}" class="text-brand-600 font-semibold hover:underline">Inicia sesión</a>
+    </p>
 </x-guest-layout>
