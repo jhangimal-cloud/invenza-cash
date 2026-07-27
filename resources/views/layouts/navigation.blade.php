@@ -3,6 +3,7 @@
         ['route' => 'collections.index', 'label' => 'Gestión de cobros', 'pattern' => ['collections.index', 'collections.show', 'collections.forecast', 'collections.from-receivable'], 'icon' => 'inbox'],
         ['route' => 'collections.cashflow', 'label' => 'Cash Flow', 'pattern' => ['collections.cashflow'], 'icon' => 'chart'],
         ['route' => 'receivables.import', 'label' => 'Importar cartera', 'pattern' => ['receivables.*', 'payables.*'], 'icon' => 'upload'],
+        ['route' => 'api-tokens.index', 'label' => 'Conexión API', 'pattern' => ['api-tokens.*'], 'icon' => 'link'],
     ];
 @endphp
 
@@ -32,6 +33,10 @@
                     @elseif($item['icon'] === 'chart')
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M3 17l5-5 4 4 8-8M20 8v5h-5" />
+                        </svg>
+                    @elseif($item['icon'] === 'link')
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6M10 17H7a4 4 0 010-8h3m4-1h3a4 4 0 010 8h-3" />
                         </svg>
                     @else
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">

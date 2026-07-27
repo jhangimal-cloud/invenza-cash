@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\CollectionTrackingController;
 use App\Http\Controllers\PayableImportController;
 use App\Http\Controllers\ProfileController;
@@ -32,6 +33,10 @@ Route::middleware('auth')->group(function () {
     Route::post('/gestion-cobros/{collectionTracking}/actividades', [CollectionTrackingController::class, 'addActivity'])->name('collections.activities.store');
     Route::post('/gestion-cobros/{collectionTracking}/recordatorio', [CollectionTrackingController::class, 'sendReminder'])->name('collections.remind');
     Route::post('/cuentas-por-cobrar/{receivable}/gestionar', [CollectionTrackingController::class, 'createFromReceivable'])->name('collections.from-receivable');
+
+    Route::get('/api-tokens', [ApiTokenController::class, 'index'])->name('api-tokens.index');
+    Route::post('/api-tokens', [ApiTokenController::class, 'store'])->name('api-tokens.store');
+    Route::delete('/api-tokens/{tokenId}', [ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');
 });
 
 require __DIR__.'/auth.php';
