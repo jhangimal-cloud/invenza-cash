@@ -9,7 +9,7 @@ Route::get('/user', function (Request $request) {
     return $request->user();
 })->middleware('auth:sanctum');
 
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'company.approved'])->group(function () {
     Route::get('/receivables', [ReceivablesApiController::class, 'index']);
     Route::post('/receivables', [ReceivablesApiController::class, 'store']);
 

@@ -9,7 +9,13 @@ class Company extends Model
     protected $fillable = [
         'name',
         'contact_email',
+        'status',
     ];
+
+    public function isActive(): bool
+    {
+        return $this->status === 'active';
+    }
 
     public function users()
     {

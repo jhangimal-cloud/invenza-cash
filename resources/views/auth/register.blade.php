@@ -1,5 +1,5 @@
 <x-guest-layout>
-    <h2 class="text-xl font-bold text-slate-800 mb-1">Crea tu cuenta</h2>
+    <h2 class="text-2xl font-bold text-ink-900 mb-1">Crea tu cuenta</h2>
     <p class="text-sm text-slate-500 mb-6">Empieza a gestionar tus cobros en minutos.</p>
 
     <form method="POST" action="{{ route('register') }}">

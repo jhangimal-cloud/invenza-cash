@@ -1,6 +1,6 @@
 <x-guest-layout>
-    <h2 class="text-xl font-bold text-slate-800 mb-1">Inicia sesión</h2>
-    <p class="text-sm text-slate-500 mb-6">Entra a tu cuenta de Invenza Cash.</p>
+    <h2 class="text-2xl font-bold text-ink-900 mb-1">Bienvenido de nuevo</h2>
+    <p class="text-sm text-slate-500 mb-6">Entra a tu cuenta de Cash by Invenza.</p>
 
     <!-- Session Status -->
     <x-auth-session-status class="mb-4" :status="session('status')" />
@@ -35,17 +35,17 @@
             </label>
         </div>
 
-        <div class="flex items-center justify-between mt-6">
-            @if (Route::has('password.request'))
-                <a class="underline text-sm text-gray-600 hover:text-gray-900 rounded-md focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand-500" href="{{ route('password.request') }}">
+        <x-primary-button class="w-full justify-center mt-6">
+            Entrar
+        </x-primary-button>
+
+        @if (Route::has('password.request'))
+            <div class="text-center mt-4">
+                <a class="text-sm text-slate-500 hover:text-ink-900 hover:underline" href="{{ route('password.request') }}">
                     ¿Olvidaste tu contraseña?
                 </a>
-            @endif
-
-            <x-primary-button class="ms-3">
-                Entrar
-            </x-primary-button>
-        </div>
+            </div>
+        @endif
     </form>
 
     <p class="text-sm text-slate-500 mt-6 text-center">

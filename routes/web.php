@@ -3,17 +3,28 @@
 use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\CollectionTrackingController;
 use App\Http\Controllers\PayableImportController;
+use App\Http\Controllers\Platform\CompanyApprovalController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReceivableImportController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
-    return view('welcome');
+    return auth()->check() ? redirect()->route('dashboard') : redirect()->route('login');
 });
 
 Route::get('/dashboard', function () {
     return redirect()->route('collections.index');
 })->middleware(['auth', 'verified'])->name('dashboard');
+
+Route::get('/cuenta-pendiente', function () {
+    return view('account.pending');
+})->middleware('auth')->name('account.pending');
+
+Route::middleware(['auth', 'platform.admin'])->prefix('platform')->name('platform.')->group(function () {
+    Route::get('/empresas', [CompanyApprovalController::class, 'index'])->name('companies.index');
+    Route::post('/empresas/{company}/aprobar', [CompanyApprovalController::class, 'approve'])->name('companies.approve');
+    Route::post('/empresas/{company}/suspender', [CompanyApprovalController::class, 'suspend'])->name('companies.suspend');
+});
 
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

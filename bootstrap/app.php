@@ -13,7 +13,14 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        $middleware->alias([
+            'company.approved' => \App\Http\Middleware\EnsureCompanyApproved::class,
+            'platform.admin' => \App\Http\Middleware\EnsurePlatformAdmin::class,
+        ]);
+
+        $middleware->web(append: [
+            \App\Http\Middleware\EnsureCompanyApproved::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(
