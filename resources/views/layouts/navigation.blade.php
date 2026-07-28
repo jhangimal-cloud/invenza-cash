@@ -7,6 +7,18 @@
     ];
 @endphp
 
+@if(Auth::user()?->is_platform_admin)
+    <div class="fixed top-4 right-4 z-50">
+        <a href="{{ route('platform.companies.index') }}"
+           class="inline-flex items-center gap-2 rounded-xl bg-ink-900 hover:bg-ink-800 text-white text-xs font-semibold px-3.5 py-2 shadow-lg shadow-ink-900/30 transition">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Consola maestra
+        </a>
+    </div>
+@endif
+
 <aside class="flex flex-col w-64 shrink-0 bg-slate-950 text-slate-300 min-h-screen">
     <div class="flex items-center gap-3 px-6 py-6 border-b border-white/10">
         <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-brand-900/40">
