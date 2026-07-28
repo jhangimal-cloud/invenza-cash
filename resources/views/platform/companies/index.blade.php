@@ -36,7 +36,7 @@
                             <tr>
                                 <th class="text-left px-5 py-3">Empresa</th>
                                 <th class="text-left px-5 py-3">Contacto</th>
-                                <th class="text-left px-5 py-3">Usuarios</th>
+                                <th class="text-left px-5 py-3">Usuarios / Cupo</th>
                                 <th class="text-left px-5 py-3">Registrada</th>
                                 <th class="text-left px-5 py-3">Estado</th>
                                 <th class="text-right px-5 py-3">Acciones</th>
@@ -47,7 +47,15 @@
                                 <tr>
                                     <td class="px-5 py-4 font-medium text-slate-800">{{ $company->name }}</td>
                                     <td class="px-5 py-4 text-slate-500">{{ $company->contact_email }}</td>
-                                    <td class="px-5 py-4 text-slate-500">{{ $company->users_count }}</td>
+                                    <td class="px-5 py-4 text-slate-500">
+                                        <form method="POST" action="{{ route('platform.companies.max-users', $company) }}" class="flex items-center gap-1.5">
+                                            @csrf
+                                            <span>{{ $company->users_count }} /</span>
+                                            <input type="number" name="max_users" min="1" max="1000" value="{{ $company->maxUsers() }}"
+                                                   class="w-16 rounded-lg border-slate-300 text-sm py-1 px-2 focus:border-brand-500 focus:ring-brand-500">
+                                            <button type="submit" class="text-xs font-semibold text-brand-700 hover:text-brand-800 hover:underline">Guardar</button>
+                                        </form>
+                                    </td>
                                     <td class="px-5 py-4 text-slate-500">{{ $company->created_at->format('d/m/Y') }}</td>
                                     <td class="px-5 py-4">
                                         @if ($company->status === 'active')

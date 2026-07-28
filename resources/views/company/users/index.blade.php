@@ -12,8 +12,17 @@
         <div class="rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-800 px-4 py-3 text-sm">{{ session('success') }}</div>
     @endif
 
+    @if(session('error'))
+        <div class="rounded-xl bg-rose-50 border border-rose-200 text-rose-800 px-4 py-3 text-sm">{{ session('error') }}</div>
+    @endif
+
     <div class="bg-white rounded-2xl border border-slate-200 p-6">
-        <h2 class="font-bold text-slate-900 mb-4">Usuarios activos</h2>
+        <div class="flex items-center justify-between mb-4">
+            <h2 class="font-bold text-slate-900">Usuarios activos</h2>
+            <span class="text-xs font-semibold px-2.5 py-1 rounded-full {{ $users->count() >= $maxUsers ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600' }}">
+                {{ $users->count() }} de {{ $maxUsers }} usuarios de tu plan
+            </span>
+        </div>
 
         <div class="divide-y divide-slate-100">
             @foreach($users as $user)
@@ -34,34 +43,42 @@
             @endforeach
         </div>
 
-        <form method="POST" action="{{ route('company.users.store') }}" class="mt-5 pt-5 border-t border-slate-100 space-y-4">
-            @csrf
-            <h3 class="text-sm font-bold text-slate-800">Agregar usuario</h3>
-
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                    <x-input-label for="name" value="Nombre" />
-                    <x-text-input id="name" name="name" type="text" class="block mt-1 w-full" :value="old('name')" required />
-                    <x-input-error :messages="$errors->get('name')" class="mt-2" />
-                </div>
-                <div>
-                    <x-input-label for="email" value="Correo" />
-                    <x-text-input id="email" name="email" type="email" class="block mt-1 w-full" :value="old('email')" required />
-                    <x-input-error :messages="$errors->get('email')" class="mt-2" />
-                </div>
-                <div>
-                    <x-input-label for="password" value="Contraseña" />
-                    <x-text-input id="password" name="password" type="password" class="block mt-1 w-full" required />
-                    <x-input-error :messages="$errors->get('password')" class="mt-2" />
-                </div>
-                <div>
-                    <x-input-label for="password_confirmation" value="Confirmar contraseña" />
-                    <x-text-input id="password_confirmation" name="password_confirmation" type="password" class="block mt-1 w-full" required />
+        @if($users->count() >= $maxUsers)
+            <div class="mt-5 pt-5 border-t border-slate-100">
+                <div class="rounded-xl bg-amber-50 border border-amber-200 text-amber-800 text-sm px-4 py-3">
+                    Ya usaste los {{ $maxUsers }} usuarios incluidos en tu plan. Si necesitas agregar más, contáctanos para contratar usuarios adicionales.
                 </div>
             </div>
+        @else
+            <form method="POST" action="{{ route('company.users.store') }}" class="mt-5 pt-5 border-t border-slate-100 space-y-4">
+                @csrf
+                <h3 class="text-sm font-bold text-slate-800">Agregar usuario</h3>
 
-            <x-primary-button>Agregar usuario</x-primary-button>
-        </form>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <x-input-label for="name" value="Nombre" />
+                        <x-text-input id="name" name="name" type="text" class="block mt-1 w-full" :value="old('name')" required />
+                        <x-input-error :messages="$errors->get('name')" class="mt-2" />
+                    </div>
+                    <div>
+                        <x-input-label for="email" value="Correo" />
+                        <x-text-input id="email" name="email" type="email" class="block mt-1 w-full" :value="old('email')" required />
+                        <x-input-error :messages="$errors->get('email')" class="mt-2" />
+                    </div>
+                    <div>
+                        <x-input-label for="password" value="Contraseña" />
+                        <x-text-input id="password" name="password" type="password" class="block mt-1 w-full" required />
+                        <x-input-error :messages="$errors->get('password')" class="mt-2" />
+                    </div>
+                    <div>
+                        <x-input-label for="password_confirmation" value="Confirmar contraseña" />
+                        <x-text-input id="password_confirmation" name="password_confirmation" type="password" class="block mt-1 w-full" required />
+                    </div>
+                </div>
+
+                <x-primary-button>Agregar usuario</x-primary-button>
+            </form>
+        @endif
     </div>
 </div>
 </x-app-layout>

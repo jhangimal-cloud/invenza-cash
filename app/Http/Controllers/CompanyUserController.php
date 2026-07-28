@@ -17,16 +17,24 @@ class CompanyUserController extends Controller
      */
     public function index(Request $request): View
     {
-        $companyId = $request->user()->company_id;
+        $company = $request->user()->company;
 
-        $users = User::where('company_id', $companyId)->orderBy('name')->get();
+        $users = User::where('company_id', $company->id)->orderBy('name')->get();
+        $maxUsers = $company->maxUsers();
 
-        return view('company.users.index', compact('users'));
+        return view('company.users.index', compact('users', 'maxUsers'));
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $companyId = $request->user()->company_id;
+        $company = $request->user()->company;
+        $companyId = $company->id;
+
+        $currentCount = User::where('company_id', $companyId)->count();
+
+        if ($currentCount >= $company->maxUsers()) {
+            return back()->with('error', "Ya alcanzaste el límite de {$company->maxUsers()} usuarios de tu plan. Contacta a soporte para contratar usuarios adicionales.");
+        }
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],

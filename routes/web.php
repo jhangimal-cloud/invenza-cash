@@ -25,6 +25,7 @@ Route::middleware(['auth', 'platform.admin'])->prefix('platform')->name('platfor
     Route::get('/empresas', [CompanyApprovalController::class, 'index'])->name('companies.index');
     Route::post('/empresas/{company}/aprobar', [CompanyApprovalController::class, 'approve'])->name('companies.approve');
     Route::post('/empresas/{company}/suspender', [CompanyApprovalController::class, 'suspend'])->name('companies.suspend');
+    Route::post('/empresas/{company}/cupo-usuarios', [CompanyApprovalController::class, 'updateMaxUsers'])->name('companies.max-users');
 });
 
 Route::middleware('auth')->group(function () {

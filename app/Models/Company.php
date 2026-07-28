@@ -10,11 +10,17 @@ class Company extends Model
         'name',
         'contact_email',
         'status',
+        'max_users',
     ];
 
     public function isActive(): bool
     {
         return $this->status === 'active';
+    }
+
+    public function maxUsers(): int
+    {
+        return $this->max_users ?? config('platform.default_max_users_per_company');
     }
 
     public function users()
