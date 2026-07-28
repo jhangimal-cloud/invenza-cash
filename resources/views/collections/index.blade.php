@@ -77,6 +77,103 @@
         </div>
     </div>
 
+    @php
+        $hasAlerts = $alerts['newly_overdue']->isNotEmpty() || $alerts['no_tracking_overdue']->isNotEmpty() || $alerts['promises_today']->isNotEmpty() || $alerts['promises_overdue']->isNotEmpty();
+        $money = fn ($value) => '$' . number_format((float) $value, 2);
+    @endphp
+
+    @if($hasAlerts)
+        <div class="bg-white rounded-2xl border border-amber-200 overflow-hidden">
+            <div class="flex items-center gap-2 px-5 py-3 bg-amber-50 border-b border-amber-200">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-4 h-4 text-amber-600">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v3.75m0 3.75h.008M4.5 19.5h15a1.5 1.5 0 001.3-2.25l-7.5-13a1.5 1.5 0 00-2.6 0l-7.5 13a1.5 1.5 0 001.3 2.25z" />
+                </svg>
+                <span class="text-sm font-bold text-amber-800">Alertas de hoy</span>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-100">
+                @if($alerts['promises_overdue']->isNotEmpty())
+                    <div class="p-5">
+                        <div class="text-xs font-bold text-red-600 uppercase tracking-wide mb-2">
+                            Promesas de pago vencidas ({{ $alerts['promises_overdue']->count() }})
+                        </div>
+                        <ul class="space-y-1.5">
+                            @foreach($alerts['promises_overdue']->take(5) as $item)
+                                <li class="text-sm flex items-center justify-between gap-3">
+                                    <a href="{{ route('collections.show', $item['receivable']->tracking) }}" class="text-slate-700 hover:text-brand-700 hover:underline truncate">
+                                        {{ $item['receivable']->customer_name }} — prometió el {{ $item['promise']->promised_payment_date->format('d/m/Y') }}
+                                    </a>
+                                    <span class="text-slate-500 font-medium shrink-0">{{ $money($item['receivable']->balance) }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                @if($alerts['promises_today']->isNotEmpty())
+                    <div class="p-5">
+                        <div class="text-xs font-bold text-amber-600 uppercase tracking-wide mb-2">
+                            Promesas de pago que vencen hoy ({{ $alerts['promises_today']->count() }})
+                        </div>
+                        <ul class="space-y-1.5">
+                            @foreach($alerts['promises_today']->take(5) as $item)
+                                <li class="text-sm flex items-center justify-between gap-3">
+                                    <a href="{{ route('collections.show', $item['receivable']->tracking) }}" class="text-slate-700 hover:text-brand-700 hover:underline truncate">
+                                        {{ $item['receivable']->customer_name }}
+                                    </a>
+                                    <span class="text-slate-500 font-medium shrink-0">{{ $money($item['receivable']->balance) }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                @if($alerts['no_tracking_overdue']->isNotEmpty())
+                    <div class="p-5">
+                        <div class="text-xs font-bold text-red-600 uppercase tracking-wide mb-2">
+                            Vencidas sin ninguna gestión ({{ $alerts['no_tracking_overdue']->count() }})
+                        </div>
+                        <ul class="space-y-1.5">
+                            @foreach($alerts['no_tracking_overdue']->take(5) as $receivable)
+                                <li class="text-sm flex items-center justify-between gap-3">
+                                    <form method="POST" action="{{ route('collections.from-receivable', $receivable) }}" class="contents">
+                                        @csrf
+                                        <button type="submit" class="text-slate-700 hover:text-brand-700 hover:underline truncate text-left">
+                                            {{ $receivable->customer_name }}
+                                        </button>
+                                    </form>
+                                    <span class="text-slate-500 font-medium shrink-0">{{ $money($receivable->balance) }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+
+                @if($alerts['newly_overdue']->isNotEmpty())
+                    <div class="p-5">
+                        <div class="text-xs font-bold text-amber-600 uppercase tracking-wide mb-2">
+                            Cayeron en mora ayer ({{ $alerts['newly_overdue']->count() }})
+                        </div>
+                        <ul class="space-y-1.5">
+                            @foreach($alerts['newly_overdue']->take(5) as $receivable)
+                                <li class="text-sm flex items-center justify-between gap-3">
+                                    @if($receivable->tracking)
+                                        <a href="{{ route('collections.show', $receivable->tracking) }}" class="text-slate-700 hover:text-brand-700 hover:underline truncate">
+                                            {{ $receivable->customer_name }}
+                                        </a>
+                                    @else
+                                        <span class="text-slate-700 truncate">{{ $receivable->customer_name }}</span>
+                                    @endif
+                                    <span class="text-slate-500 font-medium shrink-0">{{ $money($receivable->balance) }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
+            </div>
+        </div>
+    @endif
+
     <form method="GET" class="bg-white rounded-2xl border border-slate-200 p-4">
         <div class="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div class="md:col-span-2">

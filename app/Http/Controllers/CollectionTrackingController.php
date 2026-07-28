@@ -77,7 +77,75 @@ class CollectionTrackingController extends Controller
             })->count(),
         ];
 
-        return view('collections.index', compact('receivables', 'statuses', 'users', 'summary'));
+        $alerts = $this->buildAlerts($companyId);
+
+        return view('collections.index', compact('receivables', 'statuses', 'users', 'summary', 'alerts'));
+    }
+
+    /**
+     * Panel de alertas de la bandeja, calculado en vivo cada vez que el
+     * usuario entra (sin cron/scheduler). Siempre sobre TODA la cartera
+     * abierta de la empresa, sin importar los filtros de busqueda activos.
+     */
+    private function buildAlerts(int $companyId): array
+    {
+        $today = now()->startOfDay();
+
+        $openReceivables = Receivable::with('tracking')
+            ->where('company_id', $companyId)
+            ->where('balance', '>', 0)
+            ->where('status', '!=', 'PAGADO')
+            ->get();
+
+        $newlyOverdue = $openReceivables->filter(
+            fn (Receivable $r) => $r->due_date && $r->due_date->isSameDay($today->copy()->subDay())
+        )->values();
+
+        $noTrackingOverdue = $openReceivables->filter(
+            fn (Receivable $r) => $r->tracking === null && $r->due_date && $r->due_date->lt($today)
+        )->values();
+
+        $trackingIds = $openReceivables->pluck('tracking.id')->filter()->values();
+
+        $latestPromises = CollectionTrackingActivity::where('company_id', $companyId)
+            ->where('activity_type', 'promise_payment')
+            ->whereIn('tracking_id', $trackingIds)
+            ->whereNotNull('promised_payment_date')
+            ->orderByDesc('activity_at')
+            ->orderByDesc('id')
+            ->get()
+            ->groupBy('tracking_id')
+            ->map(fn ($group) => $group->first());
+
+        $promisesToday = collect();
+        $promisesOverdue = collect();
+
+        foreach ($openReceivables as $receivable) {
+            $trackingId = $receivable->tracking?->id;
+
+            if (! $trackingId) {
+                continue;
+            }
+
+            $promise = $latestPromises->get($trackingId);
+
+            if (! $promise || ! $promise->promised_payment_date) {
+                continue;
+            }
+
+            if ($promise->promised_payment_date->isSameDay($today)) {
+                $promisesToday->push(['receivable' => $receivable, 'promise' => $promise]);
+            } elseif ($promise->promised_payment_date->lt($today)) {
+                $promisesOverdue->push(['receivable' => $receivable, 'promise' => $promise]);
+            }
+        }
+
+        return [
+            'newly_overdue' => $newlyOverdue,
+            'no_tracking_overdue' => $noTrackingOverdue,
+            'promises_today' => $promisesToday->values(),
+            'promises_overdue' => $promisesOverdue->values(),
+        ];
     }
 
     /**
