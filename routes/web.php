@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\ApiTokenController;
 use App\Http\Controllers\CollectionTrackingController;
+use App\Http\Controllers\CompanyUserController;
 use App\Http\Controllers\PayableImportController;
 use App\Http\Controllers\Platform\CompanyApprovalController;
 use App\Http\Controllers\ProfileController;
@@ -48,6 +49,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/api-tokens', [ApiTokenController::class, 'index'])->name('api-tokens.index');
     Route::post('/api-tokens', [ApiTokenController::class, 'store'])->name('api-tokens.store');
     Route::delete('/api-tokens/{tokenId}', [ApiTokenController::class, 'destroy'])->name('api-tokens.destroy');
+
+    Route::get('/mi-empresa/usuarios', [CompanyUserController::class, 'index'])->name('company.users.index');
+    Route::post('/mi-empresa/usuarios', [CompanyUserController::class, 'store'])->name('company.users.store');
 });
 
 require __DIR__.'/auth.php';

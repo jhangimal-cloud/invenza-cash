@@ -4,6 +4,7 @@
         ['route' => 'collections.cashflow', 'label' => 'Cash Flow', 'pattern' => ['collections.cashflow'], 'icon' => 'chart'],
         ['route' => 'receivables.import', 'label' => 'Importar cartera', 'pattern' => ['receivables.*', 'payables.*'], 'icon' => 'upload'],
         ['route' => 'api-tokens.index', 'label' => 'Conexión API', 'pattern' => ['api-tokens.*'], 'icon' => 'link'],
+        ['route' => 'company.users.index', 'label' => 'Usuarios de mi empresa', 'pattern' => ['company.users.*'], 'icon' => 'users'],
     ];
 @endphp
 
@@ -37,6 +38,10 @@
                     @elseif($item['icon'] === 'link')
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">
                             <path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6M10 17H7a4 4 0 010-8h3m4-1h3a4 4 0 010 8h-3" />
+                        </svg>
+                    @elseif($item['icon'] === 'users')
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M15 19.5a3 3 0 00-3-3H6a3 3 0 00-3 3M9 12.75a3 3 0 100-6 3 3 0 000 6zM21 19.5a3 3 0 00-2.5-2.96M16 5.13a3 3 0 010 5.74" />
                         </svg>
                     @else
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" class="w-5 h-5">
