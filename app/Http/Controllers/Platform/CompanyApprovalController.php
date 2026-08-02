@@ -47,4 +47,19 @@ class CompanyApprovalController extends Controller
 
         return back()->with('status', 'Cupo de usuarios de "'.$company->name.'" actualizado a '.$validated['max_users'].'.');
     }
+
+    public function updateIntelligenceSettings(Request $request, Company $company): RedirectResponse
+    {
+        $validated = $request->validate([
+            'intelligence_enabled' => ['nullable', 'boolean'],
+            'intelligence_monthly_budget_usd' => ['nullable', 'numeric', 'min:0'],
+        ]);
+
+        $company->update([
+            'intelligence_enabled' => $request->boolean('intelligence_enabled'),
+            'intelligence_monthly_budget_usd' => $validated['intelligence_monthly_budget_usd'] ?? null,
+        ]);
+
+        return back()->with('status', 'Invenza Intelligence de "'.$company->name.'" actualizado.');
+    }
 }
