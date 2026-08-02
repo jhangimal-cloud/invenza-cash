@@ -12,7 +12,7 @@
     </head>
     <body class="font-sans text-slate-900 antialiased bg-slate-50">
         <div class="min-h-screen px-6 py-10">
-            <div class="max-w-5xl mx-auto">
+            <div class="max-w-7xl mx-auto">
                 <div class="flex items-center justify-between mb-8">
                     <div>
                         <h1 class="text-xl font-bold text-ink-900">Panel de Invenza — Empresas</h1>
@@ -30,7 +30,7 @@
                     </div>
                 @endif
 
-                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-x-auto">
                     <table class="w-full text-sm">
                         <thead class="bg-slate-50 text-slate-500 text-xs uppercase tracking-wide">
                             <tr>
@@ -57,15 +57,25 @@
                                             <button type="submit" class="text-xs font-semibold text-brand-700 hover:text-brand-800 hover:underline">Guardar</button>
                                         </form>
                                     </td>
-                                    <td class="px-5 py-4 text-slate-500">
-                                        <form method="POST" action="{{ route('platform.companies.intelligence', $company) }}" class="flex items-center gap-1.5">
+                                    <td class="px-5 py-4">
+                                        <form method="POST" action="{{ route('platform.companies.intelligence', $company) }}"
+                                              class="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/70 px-2.5 py-1.5">
                                             @csrf
-                                            <input type="checkbox" name="intelligence_enabled" value="1" @checked($company->intelligence_enabled)
-                                                   class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
-                                            <input type="number" step="0.01" min="0" name="intelligence_monthly_budget_usd"
-                                                   value="{{ $company->intelligence_monthly_budget_usd }}" placeholder="USD/mes"
-                                                   class="w-20 rounded-lg border-slate-300 text-sm py-1 px-2 focus:border-brand-500 focus:ring-brand-500">
-                                            <button type="submit" class="text-xs font-semibold text-brand-700 hover:text-brand-800 hover:underline">Guardar</button>
+                                            <label class="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                                                <input type="checkbox" name="intelligence_enabled" value="1" @checked($company->intelligence_enabled)
+                                                       class="rounded border-slate-300 text-brand-600 focus:ring-brand-500 focus:ring-offset-0">
+                                                <span class="text-xs font-medium {{ $company->intelligence_enabled ? 'text-brand-700' : 'text-slate-500' }}">
+                                                    {{ $company->intelligence_enabled ? 'Activa' : 'Activar' }}
+                                                </span>
+                                            </label>
+                                            <span class="h-4 w-px bg-slate-200"></span>
+                                            <span class="flex items-center gap-1 text-slate-400 text-xs">
+                                                $
+                                                <input type="number" step="0.01" min="0" name="intelligence_monthly_budget_usd"
+                                                       value="{{ $company->intelligence_monthly_budget_usd }}" placeholder="sin límite"
+                                                       class="w-20 rounded-lg border-slate-300 text-xs py-1 px-1.5 focus:border-brand-500 focus:ring-brand-500">
+                                            </span>
+                                            <button type="submit" class="text-xs font-semibold text-brand-700 hover:text-brand-800 hover:underline whitespace-nowrap">Guardar</button>
                                         </form>
                                     </td>
                                     <td class="px-5 py-4 text-slate-500">{{ $company->created_at->format('d/m/Y') }}</td>
