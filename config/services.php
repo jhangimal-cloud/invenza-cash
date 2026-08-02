@@ -14,6 +14,13 @@ return [
     |
     */
 
+    'anthropic' => [
+        'api_key' => env('ANTHROPIC_API_KEY'),
+        'base_url' => env('ANTHROPIC_BASE_URL', 'https://api.anthropic.com'),
+        'default_model' => env('ANTHROPIC_DEFAULT_MODEL', 'claude-sonnet-5'),
+        'timeout' => env('ANTHROPIC_TIMEOUT', 30),
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),

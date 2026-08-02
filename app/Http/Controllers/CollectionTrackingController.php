@@ -518,4 +518,78 @@ class CollectionTrackingController extends Controller
         return redirect()->route('collections.show', $collectionTracking)
             ->with('success', 'Recordatorio enviado correctamente a ' . $email . '.');
     }
+
+    /**
+     * Primer consumidor real de Invenza Intelligence en Cash. Sugiere el
+     * texto del recordatorio, el usuario lo revisa/edita en el textarea
+     * antes de enviarlo con sendReminder() - nunca se envia solo.
+     */
+    public function suggestReminder(Request $request, CollectionTracking $collectionTracking)
+    {
+        $companyId = $request->user()->company_id;
+
+        abort_if((int) $collectionTracking->company_id !== (int) $companyId, 403);
+
+        $collectionTracking->loadMissing('receivable');
+
+        $activities = CollectionTrackingActivity::where('tracking_id', $collectionTracking->id)
+            ->orderByDesc('activity_at')
+            ->limit(5)
+            ->get();
+
+        $dueDate = $collectionTracking->original_due_date;
+        $daysOverdue = $dueDate ? now()->startOfDay()->diffInDays($dueDate->copy()->startOfDay(), false) : null;
+
+        $context = [];
+        $context[] = 'Cliente: ' . ($collectionTracking->receivable->customer_name ?: 'Sin nombre');
+        $context[] = 'Saldo pendiente: $' . number_format((float) $collectionTracking->balance_amount, 2);
+
+        if ($dueDate) {
+            $context[] = $daysOverdue > 0
+                ? 'Vencido hace ' . $daysOverdue . ' día(s) (venció el ' . $dueDate->format('d/m/Y') . ').'
+                : 'Vence el ' . $dueDate->format('d/m/Y') . ' (aún no vencido).';
+        }
+
+        if ($activities->isNotEmpty()) {
+            $context[] = 'Historial reciente de gestión (más reciente primero):';
+
+            foreach ($activities as $activity) {
+                $line = '- ' . ($activity->activity_at?->format('d/m/Y') ?: 's/f')
+                    . ': ' . ($activity->subject ?: $activity->activity_type);
+
+                if ($activity->promised_amount) {
+                    $line .= ' (prometió pagar $' . number_format((float) $activity->promised_amount, 2)
+                        . ($activity->promised_payment_date ? ' el ' . $activity->promised_payment_date->format('d/m/Y') : '')
+                        . ')';
+                }
+
+                if ($activity->body) {
+                    $line .= ' — ' . mb_substr($activity->body, 0, 200);
+                }
+
+                $context[] = $line;
+            }
+        }
+
+        $result = app(\App\Services\Intelligence\IntelligenceService::class)->run(
+            companyId: $companyId,
+            module: 'collections',
+            task: 'draft_reminder',
+            systemPrompt: 'Eres un asistente de cobranza. Redacta un recordatorio de pago breve '
+                . '(2 a 4 frases), en español, con tono profesional y cordial - nunca amenazante '
+                . 'ni agresivo. El mensaje debe poder copiarse directo a un correo. No agregues '
+                . 'saludo formal con nombre inventado ni firma, solo el cuerpo del mensaje.',
+            userPrompt: implode("\n", $context),
+            options: [
+                'user_id' => $request->user()->id,
+                'max_tokens' => 300,
+            ]
+        );
+
+        if (!$result['ok']) {
+            return response()->json(['ok' => false, 'message' => $result['message']], 422);
+        }
+
+        return response()->json(['ok' => true, 'text' => $result['text']]);
+    }
 }

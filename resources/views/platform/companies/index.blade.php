@@ -37,6 +37,7 @@
                                 <th class="text-left px-5 py-3">Empresa</th>
                                 <th class="text-left px-5 py-3">Contacto</th>
                                 <th class="text-left px-5 py-3">Usuarios / Cupo</th>
+                                <th class="text-left px-5 py-3">IA</th>
                                 <th class="text-left px-5 py-3">Registrada</th>
                                 <th class="text-left px-5 py-3">Estado</th>
                                 <th class="text-right px-5 py-3">Acciones</th>
@@ -53,6 +54,17 @@
                                             <span>{{ $company->users_count }} /</span>
                                             <input type="number" name="max_users" min="1" max="1000" value="{{ $company->maxUsers() }}"
                                                    class="w-16 rounded-lg border-slate-300 text-sm py-1 px-2 focus:border-brand-500 focus:ring-brand-500">
+                                            <button type="submit" class="text-xs font-semibold text-brand-700 hover:text-brand-800 hover:underline">Guardar</button>
+                                        </form>
+                                    </td>
+                                    <td class="px-5 py-4 text-slate-500">
+                                        <form method="POST" action="{{ route('platform.companies.intelligence', $company) }}" class="flex items-center gap-1.5">
+                                            @csrf
+                                            <input type="checkbox" name="intelligence_enabled" value="1" @checked($company->intelligence_enabled)
+                                                   class="rounded border-slate-300 text-brand-600 focus:ring-brand-500">
+                                            <input type="number" step="0.01" min="0" name="intelligence_monthly_budget_usd"
+                                                   value="{{ $company->intelligence_monthly_budget_usd }}" placeholder="USD/mes"
+                                                   class="w-20 rounded-lg border-slate-300 text-sm py-1 px-2 focus:border-brand-500 focus:ring-brand-500">
                                             <button type="submit" class="text-xs font-semibold text-brand-700 hover:text-brand-800 hover:underline">Guardar</button>
                                         </form>
                                     </td>
@@ -83,7 +95,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-5 py-8 text-center text-slate-400">Todavía no hay empresas registradas.</td>
+                                    <td colspan="7" class="px-5 py-8 text-center text-slate-400">Todavía no hay empresas registradas.</td>
                                 </tr>
                             @endforelse
                         </tbody>

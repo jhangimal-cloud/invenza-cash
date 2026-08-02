@@ -26,6 +26,7 @@ Route::middleware(['auth', 'platform.admin'])->prefix('platform')->name('platfor
     Route::post('/empresas/{company}/aprobar', [CompanyApprovalController::class, 'approve'])->name('companies.approve');
     Route::post('/empresas/{company}/suspender', [CompanyApprovalController::class, 'suspend'])->name('companies.suspend');
     Route::post('/empresas/{company}/cupo-usuarios', [CompanyApprovalController::class, 'updateMaxUsers'])->name('companies.max-users');
+    Route::post('/empresas/{company}/ia', [CompanyApprovalController::class, 'updateIntelligenceSettings'])->name('companies.intelligence');
 });
 
 Route::middleware('auth')->group(function () {
@@ -45,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/gestion-cobros/{collectionTracking}', [CollectionTrackingController::class, 'show'])->name('collections.show');
     Route::post('/gestion-cobros/{collectionTracking}/actividades', [CollectionTrackingController::class, 'addActivity'])->name('collections.activities.store');
     Route::post('/gestion-cobros/{collectionTracking}/recordatorio', [CollectionTrackingController::class, 'sendReminder'])->name('collections.remind');
+    Route::post('/gestion-cobros/{collectionTracking}/sugerir-recordatorio', [CollectionTrackingController::class, 'suggestReminder'])->name('collections.suggestReminder');
     Route::post('/cuentas-por-cobrar/{receivable}/gestionar', [CollectionTrackingController::class, 'createFromReceivable'])->name('collections.from-receivable');
 
     Route::get('/api-tokens', [ApiTokenController::class, 'index'])->name('api-tokens.index');

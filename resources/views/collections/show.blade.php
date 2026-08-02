@@ -92,8 +92,18 @@
                         <form id="reminderForm" method="POST" action="{{ route('collections.remind', $collectionTracking) }}" class="hidden mt-3 space-y-2">
                             @csrf
                             <label class="block text-xs font-semibold text-slate-600">Mensaje (opcional)</label>
-                            <textarea name="message" rows="3" class="w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500"
+                            <textarea id="reminderMessage" name="message" rows="3" class="w-full rounded-lg border-slate-300 text-sm focus:border-brand-500 focus:ring-brand-500"
                                       placeholder="Ej: Le recordamos amablemente que su pago está pendiente..."></textarea>
+
+                            @if(auth()->user()->company?->intelligence_enabled)
+                                <button type="button" id="suggestReminderBtn"
+                                        data-url="{{ route('collections.suggestReminder', $collectionTracking) }}"
+                                        class="w-full rounded-lg bg-indigo-50 border border-indigo-200 text-indigo-700 px-4 py-2 text-sm font-semibold hover:bg-indigo-100">
+                                    ✨ Sugerir con IA
+                                </button>
+                                <p id="suggestReminderError" class="hidden text-xs text-rose-600"></p>
+                            @endif
+
                             <button type="submit" class="w-full rounded-lg bg-amber-600 text-white px-4 py-2 text-sm font-semibold hover:bg-amber-700">
                                 Enviar a {{ $collectionTracking->receivable->customer_email }}
                             </button>
@@ -228,4 +238,44 @@
         </div>
     </div>
 </div>
+
+<script>
+    (function () {
+        const btn = document.getElementById('suggestReminderBtn');
+        if (!btn) return;
+
+        const csrf = "{{ csrf_token() }}";
+        const textarea = document.getElementById('reminderMessage');
+        const errorBox = document.getElementById('suggestReminderError');
+
+        btn.addEventListener('click', function () {
+            btn.disabled = true;
+            btn.textContent = 'Redactando…';
+            errorBox.classList.add('hidden');
+
+            fetch(btn.dataset.url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrf,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'application/json',
+                },
+            }).then(async function (res) {
+                const data = await res.json();
+                if (!res.ok || !data.ok) {
+                    throw new Error(data.message || 'No se pudo generar la sugerencia.');
+                }
+                return data;
+            }).then(function (data) {
+                textarea.value = data.text;
+            }).catch(function (err) {
+                errorBox.textContent = err.message;
+                errorBox.classList.remove('hidden');
+            }).finally(function () {
+                btn.disabled = false;
+                btn.textContent = '✨ Sugerir con IA';
+            });
+        });
+    })();
+</script>
 </x-app-layout>
